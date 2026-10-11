@@ -1,0 +1,24 @@
+# .NET Build stage
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj files and restore
+COPY ["src/ECommerce.API/ECommerce.API.csproj", "src/ECommerce.API/"]
+COPY ["src/ECommerce.Application/ECommerce.Application.csproj", "src/ECommerce.Application/"]
+COPY ["src/ECommerce.Infrastructure/ECommerce.Infrastructure.csproj", "src/ECommerce.Infrastructure/"]
+COPY ["src/ECommerce.Domain/ECommerce.Domain.csproj", "src/ECommerce.Domain/"]
+
+RUN dotnet restore "src/ECommerce.API/ECommerce.API.csproj"
+
+# Copy full source and publish
+COPY . .
+WORKDIR "/src/src/ECommerce.API"
+RUN dotnet publish "ECommerce.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 5169
+ENV ASPNETCORE_URLS=http://+:5169
+ENTRYPOINT ["dotnet", "ECommerce.API.dll"]

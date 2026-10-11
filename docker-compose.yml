@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: ecommerce_sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=SuperStrongPassword123!
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - ecommerce_network
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: ecommerce_api
+    depends_on:
+      - sqlserver
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=ECommerceDb;User Id=sa;Password=SuperStrongPassword123!;TrustServerCertificate=True;MultipleActiveResultSets=true
+    ports:
+      - "5169:5169"
+    networks:
+      - ecommerce_network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: ecommerce_client
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    networks:
+      - ecommerce_network
+
+volumes:
+  sqlserver_data:
+
+networks:
+  ecommerce_network:
+    driver: bridge
